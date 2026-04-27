@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Xray outbound → share link converter</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --panel-2: #1f2937;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --accent: #38bdf8;
+      --danger: #fb7185;
+      --ok: #34d399;
+      --border: #334155;
+      --shadow: 0 24px 80px rgba(0, 0, 0, .35);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(56, 189, 248, .18), transparent 35%),
+        radial-gradient(circle at bottom right, rgba(52, 211, 153, .12), transparent 30%),
+        var(--bg);
+    }
+
+    .wrap {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 42px 0;
+    }
+
+    header {
+      margin-bottom: 28px;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(28px, 4vw, 46px);
+      letter-spacing: -0.04em;
+      line-height: 1.05;
+    }
+
+    .lead {
+      margin: 0;
+      max-width: 820px;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.65;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    @media (max-width: 860px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      background: rgba(17, 24, 39, .86);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(31, 41, 55, .62);
+    }
+
+    .card-head h2 {
+      margin: 0;
+      font-size: 16px;
+      letter-spacing: -0.02em;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 9px;
+      border-radius: 999px;
+      color: var(--muted);
+      background: rgba(148, 163, 184, .12);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    textarea, input, select {
+      width: 100%;
+      color: var(--text);
+      border: 1px solid var(--border);
+      background: rgba(15, 23, 42, .78);
+      border-radius: 14px;
+      outline: none;
+      transition: border-color .15s, box-shadow .15s;
+    }
+
+    textarea:focus, input:focus, select:focus {
+      border-color: rgba(56, 189, 248, .85);
+      box-shadow: 0 0 0 4px rgba(56, 189, 248, .12);
+    }
+
+    textarea {
+      min-height: 560px;
+      resize: vertical;
+      padding: 16px;
+      font: 13px/1.55 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
+
+    .body { padding: 18px; }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    @media (max-width: 520px) {
+      .controls { grid-template-columns: 1fr; }
+    }
+
+    label {
+      display: block;
+      margin-bottom: 7px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    input, select {
+      min-height: 42px;
+      padding: 9px 12px;
+    }
+
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 14px 0;
+    }
+
+    button {
+      appearance: none;
+      border: 0;
+      border-radius: 14px;
+      padding: 11px 15px;
+      color: #06111f;
+      background: var(--accent);
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform .12s, opacity .12s;
+    }
+
+    button.secondary {
+      color: var(--text);
+      background: rgba(148, 163, 184, .16);
+      border: 1px solid var(--border);
+    }
+
+    button:hover { transform: translateY(-1px); }
+    button:active { transform: translateY(0); opacity: .86; }
+
+    .result {
+      min-height: 186px;
+      word-break: break-all;
+      white-space: pre-wrap;
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: rgba(15, 23, 42, .78);
+      font: 13px/1.6 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .status {
+      margin-top: 12px;
+      min-height: 24px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .status.error { color: var(--danger); }
+    .status.ok { color: var(--ok); }
+
+    details {
+      margin-top: 18px;
+      border-top: 1px solid var(--border);
+      padding-top: 16px;
+      color: var(--muted);
+    }
+
+    summary {
+      cursor: pointer;
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    code {
+      color: #bae6fd;
+    }
+
+    .examples {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .small {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <h1>Xray outbound config converter</h1>
+      <p class="lead">
+        Локальный конвертер без сервера: JSON обрабатывается только в браузере.
+        Вставьте один outbound-объект из Xray/V2Ray-конфига или полный конфиг с массивом <code>outbounds</code>.
+      </p>
+    </header>
+
+    <section class="grid">
+      <article class="card">
+        <div class="card-head">
+          <h2>JSON конфигурация</h2>
+          <span class="badge">client-side only</span>
+        </div>
+        <div class="body">
+          <textarea id="jsonInput" spellcheck="false" placeholder='Вставьте outbound JSON, например { "protocol": "vless", "settings": { ... }, "streamSettings": { ... } }'></textarea>
+          <div class="row">
+            <button id="convertBtn">Сконвертировать</button>
+            <button class="secondary" id="formatBtn">Форматировать JSON</button>
+            <button class="secondary" id="clearBtn">Очистить</button>
+          </div>
+          <div class="examples">
+            <button class="secondary" data-example="vless">Пример VLESS</button>
+            <button class="secondary" data-example="vmess">Пример VMess</button>
+            <button class="secondary" data-example="trojan">Пример Trojan</button>
+            <button class="secondary" data-example="ss">Пример Shadowsocks</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-head">
+          <h2>Share-ссылка</h2>
+          <span class="badge" id="detectedBadge">protocol: —</span>
+        </div>
+        <div class="body">
+          <div class="controls">
+            <div>
+              <label for="outboundIndex">Outbound из массива</label>
+              <input id="outboundIndex" type="number" min="0" value="0" />
+            </div>
+            <div>
+              <label for="remarkOverride">Remark / имя ссылки</label>
+              <input id="remarkOverride" placeholder="опционально" />
+            </div>
+          </div>
+
+          <div id="result" class="result"></div>
+
+          <div class="row">
+            <button id="copyBtn">Копировать ссылку</button>
+            <button class="secondary" id="downloadBtn">Скачать .txt</button>
+          </div>
+
+          <div id="status" class="status">Готово к конвертации.</div>
+
+          <details>
+            <summary>Что поддерживается</summary>
+            <p class="small">
+              Поддерживаются outbound-протоколы <code>vless</code>, <code>vmess</code>, <code>trojan</code>, <code>shadowsocks</code>.
+              Для transport обрабатываются <code>tcp</code>, <code>ws</code>, <code>grpc</code>, <code>httpupgrade</code>, <code>xhttp</code> и базовые параметры TLS/Reality.
+              Нестандартные поля Xray могут потребовать ручной доработки маппинга.
+            </p>
+          </details>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    const input = $('jsonInput');
+    const result = $('result');
+    const statusEl = $('status');
+    const detectedBadge = $('detectedBadge');
+    const remarkOverride = $('remarkOverride');
+    const outboundIndex = $('outboundIndex');
+
+    const examples = {
+      vless: {
+        protocol: 'vless',
+        tag: 'my-vless-node',
+        settings: {
+          vnext: [{
+            address: 'example.com',
+            port: 443,
+            users: [{ id: '11111111-1111-1111-1111-111111111111', encryption: 'none', flow: 'xtls-rprx-vision' }]
+          }]
+        },
+        streamSettings: {
+          network: 'tcp',
+          security: 'reality',
+          realitySettings: {
+            serverName: 'www.microsoft.com',
+            fingerprint: 'chrome',
+            publicKey: 'PUBLIC_KEY_HERE',
+            shortId: 'abcd1234',
+            spiderX: '/'
+          }
+        }
+      },
+      vmess: {
+        protocol: 'vmess',
+        tag: 'my-vmess-node',
+        settings: {
+          vnext: [{
+            address: 'example.com',
+            port: 443,
+            users: [{ id: '22222222-2222-2222-2222-222222222222', alterId: 0, security: 'auto' }]
+          }]
+        },
+        streamSettings: {
+          network: 'ws',
+          security: 'tls',
+          tlsSettings: { serverName: 'example.com', fingerprint: 'chrome', allowInsecure: false },
+          wsSettings: { path: '/websocket', headers: { Host: 'example.com' } }
+        }
+      },
+      trojan: {
+        protocol: 'trojan',
+        tag: 'my-trojan-node',
+        settings: {
+          servers: [{ address: 'example.com', port: 443, password: 'password123' }]
+        },
+        streamSettings: {
+          network: 'grpc',
+          security: 'tls',
+          tlsSettings: { serverName: 'example.com', fingerprint: 'chrome' },
+          grpcSettings: { serviceName: 'grpc-service' }
+        }
+      },
+      ss: {
+        protocol: 'shadowsocks',
+        tag: 'my-ss-node',
+        settings: {
+          servers: [{ address: 'example.com', port: 8388, method: '2022-blake3-aes-128-gcm', password: 'password123' }]
+        }
+      }
+    };
+
+    function setStatus(message, type = '') {
+      statusEl.textContent = message;
+      statusEl.className = `status ${type}`.trim();
+    }
+
+    function safeBase64Encode(str) {
+      const bytes = new TextEncoder().encode(str);
+      let binary = '';
+      bytes.forEach((b) => binary += String.fromCharCode(b));
+      return btoa(binary);
+    }
+
+    function base64UrlEncode(str) {
+      return safeBase64Encode(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+    }
+
+    function encodeHash(value) {
+      return value ? '#' + encodeURIComponent(value) : '';
+    }
+
+    function addParam(params, key, value) {
+      if (value === undefined || value === null || value === '') return;
+      params.set(key, String(value));
+    }
+
+    function parseJson() {
+      const raw = input.value.trim();
+      if (!raw) throw new Error('Вставьте JSON конфигурации.');
+      return JSON.parse(raw);
+    }
+
+    function pickOutbound(config) {
+      if (Array.isArray(config)) {
+        const idx = Number(outboundIndex.value || 0);
+        if (!config[idx]) throw new Error(`В массиве нет outbound с индексом ${idx}.`);
+        return config[idx];
+      }
+
+      if (Array.isArray(config.outbounds)) {
+        const idx = Number(outboundIndex.value || 0);
+        if (!config.outbounds[idx]) throw new Error(`В config.outbounds нет элемента с индексом ${idx}.`);
+        return config.outbounds[idx];
+      }
+
+      return config;
+    }
+
+    function getDestinationFromVnext(outbound) {
+      const vnext = outbound?.settings?.vnext?.[0];
+      const user = vnext?.users?.[0] || {};
+      if (!vnext?.address || !vnext?.port) throw new Error('Не найдены settings.vnext[0].address/port.');
+      return { address: vnext.address, port: vnext.port, user };
+    }
+
+    function getDestinationFromServers(outbound) {
+      const server = outbound?.settings?.servers?.[0];
+      if (!server?.address || !server?.port) throw new Error('Не найдены settings.servers[0].address/port.');
+      return { address: server.address, port: server.port, server };
+    }
+
+    function getRemark(outbound) {
+      return remarkOverride.value.trim() || outbound.tag || outbound.protocol || 'xray-outbound';
+    }
+
+    function fillTransportParams(params, stream = {}) {
+      const network = stream.network || 'tcp';
+      const security = stream.security || 'none';
+      const tls = stream.tlsSettings || {};
+      const reality = stream.realitySettings || {};
+      const ws = stream.wsSettings || {};
+      const grpc = stream.grpcSettings || {};
+      const httpupgrade = stream.httpupgradeSettings || {};
+      const xhttp = stream.xhttpSettings || {};
+      const tcp = stream.tcpSettings || {};
+
+      addParam(params, 'type', network);
+      addParam(params, 'security', security);
+
+      if (security === 'tls') {
+        addParam(params, 'sni', tls.serverName);
+        addParam(params, 'fp', tls.fingerprint);
+        if (tls.allowInsecure === true) addParam(params, 'allowInsecure', 1);
+        addParam(params, 'alpn', Array.isArray(tls.alpn) ? tls.alpn.join(',') : tls.alpn);
+      }
+
+      if (security === 'reality') {
+        addParam(params, 'sni', reality.serverName);
+        addParam(params, 'fp', reality.fingerprint);
+        addParam(params, 'pbk', reality.publicKey);
+        addParam(params, 'sid', reality.shortId);
+        addParam(params, 'spx', reality.spiderX);
+      }
+
+      if (network === 'ws') {
+        addParam(params, 'path', ws.path);
+        addParam(params, 'host', ws.headers?.Host || ws.headers?.host);
+      }
+
+      if (network === 'grpc') {
+        addParam(params, 'serviceName', grpc.serviceName);
+        if (grpc.multiMode === true) addParam(params, 'mode', 'multi');
+      }
+
+      if (network === 'httpupgrade') {
+        addParam(params, 'path', httpupgrade.path);
+        addParam(params, 'host', httpupgrade.host || httpupgrade.headers?.Host || httpupgrade.headers?.host);
+      }
+
+      if (network === 'xhttp') {
+        addParam(params, 'path', xhttp.path);
+        addParam(params, 'host', xhttp.host);
+        addParam(params, 'mode', xhttp.mode);
+      }
+
+      if (network === 'tcp' && tcp.header?.type && tcp.header.type !== 'none') {
+        addParam(params, 'headerType', tcp.header.type);
+      }
+    }
+
+    function buildVless(outbound) {
+      const { address, port, user } = getDestinationFromVnext(outbound);
+      if (!user.id) throw new Error('Для VLESS не найден settings.vnext[0].users[0].id.');
+
+      const params = new URLSearchParams();
+      addParam(params, 'encryption', user.encryption || 'none');
+      addParam(params, 'flow', user.flow);
+      fillTransportParams(params, outbound.streamSettings || {});
+
+      return `vless://${encodeURIComponent(user.id)}@${address}:${port}?${params.toString()}${encodeHash(getRemark(outbound))}`;
+    }
+
+    function buildVmess(outbound) {
+      const { address, port, user } = getDestinationFromVnext(outbound);
+      if (!user.id) throw new Error('Для VMess не найден settings.vnext[0].users[0].id.');
+
+      const stream = outbound.streamSettings || {};
+      const tls = stream.tlsSettings || {};
+      const ws = stream.wsSettings || {};
+      const grpc = stream.grpcSettings || {};
+
+      const vmess = {
+        v: '2',
+        ps: getRemark(outbound),
+        add: address,
+        port: String(port),
+        id: user.id,
+        aid: String(user.alterId ?? 0),
+        scy: user.security || 'auto',
+        net: stream.network || 'tcp',
+        type: stream.tcpSettings?.header?.type || 'none',
+        host: ws.headers?.Host || ws.headers?.host || tls.serverName || '',
+        path: ws.path || grpc.serviceName || '',
+        tls: stream.security === 'tls' ? 'tls' : '',
+        sni: tls.serverName || '',
+        fp: tls.fingerprint || '',
+        alpn: Array.isArray(tls.alpn) ? tls.alpn.join(',') : (tls.alpn || '')
+      };
+
+      return `vmess://${safeBase64Encode(JSON.stringify(vmess))}`;
+    }
+
+    function buildTrojan(outbound) {
+      const { address, port, server } = getDestinationFromServers(outbound);
+      if (!server.password) throw new Error('Для Trojan не найден settings.servers[0].password.');
+
+      const params = new URLSearchParams();
+      fillTransportParams(params, outbound.streamSettings || {});
+
+      return `trojan://${encodeURIComponent(server.password)}@${address}:${port}?${params.toString()}${encodeHash(getRemark(outbound))}`;
+    }
+
+    function buildShadowsocks(outbound) {
+      const { address, port, server } = getDestinationFromServers(outbound);
+      if (!server.method || !server.password) {
+        throw new Error('Для Shadowsocks нужны settings.servers[0].method и password.');
+      }
+
+      const userInfo = base64UrlEncode(`${server.method}:${server.password}`);
+      return `ss://${userInfo}@${address}:${port}${encodeHash(getRemark(outbound))}`;
+    }
+
+    function convert() {
+      try {
+        const config = parseJson();
+        const outbound = pickOutbound(config);
+        const protocol = String(outbound.protocol || '').toLowerCase();
+        detectedBadge.textContent = `protocol: ${protocol || '—'}`;
+
+        let link;
+        if (protocol === 'vless') link = buildVless(outbound);
+        else if (protocol === 'vmess') link = buildVmess(outbound);
+        else if (protocol === 'trojan') link = buildTrojan(outbound);
+        else if (protocol === 'shadowsocks' || protocol === 'ss') link = buildShadowsocks(outbound);
+        else throw new Error(`Протокол "${protocol || 'не указан'}" пока не поддерживается.`);
+
+        result.textContent = link;
+        setStatus('Ссылка успешно сгенерирована.', 'ok');
+      } catch (err) {
+        result.textContent = '';
+        detectedBadge.textContent = 'protocol: —';
+        setStatus(err.message, 'error');
+      }
+    }
+
+    $('convertBtn').addEventListener('click', convert);
+
+    $('formatBtn').addEventListener('click', () => {
+      try {
+        input.value = JSON.stringify(parseJson(), null, 2);
+        setStatus('JSON отформатирован.', 'ok');
+      } catch (err) {
+        setStatus(err.message, 'error');
+      }
+    });
+
+    $('clearBtn').addEventListener('click', () => {
+      input.value = '';
+      result.textContent = '';
+      detectedBadge.textContent = 'protocol: —';
+      setStatus('Поля очищены.');
+    });
+
+    $('copyBtn').addEventListener('click', async () => {
+      const text = result.textContent.trim();
+      if (!text) return setStatus('Сначала сгенерируйте ссылку.', 'error');
+      try {
+        await navigator.clipboard.writeText(text);
+        setStatus('Ссылка скопирована в буфер обмена.', 'ok');
+      } catch {
+        setStatus('Не удалось скопировать автоматически. Выделите ссылку вручную.', 'error');
+      }
+    });
+
+    $('downloadBtn').addEventListener('click', () => {
+      const text = result.textContent.trim();
+      if (!text) return setStatus('Сначала сгенерируйте ссылку.', 'error');
+      const blob = new Blob([text + '\n'], { type: 'text/plain;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'xray-share-link.txt';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(a.href);
+      setStatus('Файл подготовлен к скачиванию.', 'ok');
+    });
+
+    document.querySelectorAll('[data-example]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        input.value = JSON.stringify(examples[btn.dataset.example], null, 2);
+        convert();
+      });
+    });
+
+    setStatus('Готово к конвертации.');
+  </script>
+</body>
+</html>
